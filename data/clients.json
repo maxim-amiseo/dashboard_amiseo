@@ -1,0 +1,70 @@
+[
+  {
+    "id": "lucyome",
+    "name": "Lucyome",
+    "industry": "E-commerce bougies et bien-être",
+    "summary": "Objectif : scaler les ventes en ligne via campagnes paid + optimisation des abonnements parfumés, tout en gardant un ton de marque premium.",
+    "kpis": [
+      {
+        "label": "Chiffre d'affaires",
+        "value": "76 400 €",
+        "helper": "+14% vs N-1"
+      },
+      {
+        "label": "ROAS global",
+        "value": "4,5x",
+        "helper": "+0,5 pt"
+      },
+      {
+        "label": "Abonnements actifs",
+        "value": "2 150",
+        "helper": "+180 nouveaux"
+      },
+      {
+        "label": "Panier moyen",
+        "value": "72 €",
+        "helper": "stable"
+      }
+    ],
+    "monthlyHighlights": [
+      "Capsule \"Noël minéral\" sold-out en 4 jours",
+      "Top of funnel Meta optimisé avec nouveaux hooks créatifs",
+      "Série d'emails \"rituels d'hiver\" : +38% de clics"
+    ],
+    "thisMonthActions": [
+      "Audit GA4 → migrations des conversions server-side",
+      "Nouvelles landing pages bundle + upsell",
+      "Partenariat influenceurs maison pour la Candle Week"
+    ],
+    "nextMonthActions": [
+      "Lancement campagne gifting corporate",
+      "Test acquisition Pinterest + TikTok Shop",
+      "Automatisation relance abonnements expirés"
+    ],
+    "initiatives": [
+      {
+        "title": "Meta Ads",
+        "status": "active",
+        "details": "Budget scaling progressif, focus Advantage+ shopping"
+      },
+      {
+        "title": "Email & CRM",
+        "status": "active",
+        "details": "Workflows anniversaires + onboarding abonnés"
+      },
+      {
+        "title": "SEO & Contenu",
+        "status": "planning",
+        "details": "Calendrier éditorial \"notes olfactives\""
+      }
+    ],
+    "ecommerce": {
+      "revenue": "76 400 € (+14%)",
+      "conversionRate": "3,4% (+0,6 pt)",
+      "returningCustomers": "42% (+5 pts)",
+      "topProduct": "Bougie Quartz & Musc",
+      "avgOrderValue": "72 €",
+      "cartAbandonment": "58% (-4 pts)"
+    }
+  }
+]

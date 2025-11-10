@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Amiseo Client Dashboard
 
-## Getting Started
+Application Next.js (App Router + Tailwind v4) qui fournit :
 
-First, run the development server:
+- Un cockpit admin pour mettre à jour les données de chaque client (résumé, KPIs, actions passées / futures, initiatives, bloc e‑commerce).
+- Une vue client ultra visuelle synchronisée en temps réel avec vos mises à jour.
+- Authentification simplifiée par rôle (admin vs client), stockée via cookie JWT.
+
+### Lancer le projet
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Puis ouvrez `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Rôle  | Identifiant | Mot de passe |
+| ----- | ----------- | ------------ |
+| Admin | `Maxim`     | `Maxim2009`  |
+| Client démo | `test` | `test` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+L’admin est redirigé vers `/admin`, les clients vers `/dashboard`.
 
-## Learn More
+### Gestion des données
 
-To learn more about Next.js, take a look at the following resources:
+Les données sont persistées dans deux fichiers JSON faciles à éditer :
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `data/users.json` : comptes et rôles. Ajoutez un objet `{ "username": "...", "password": "...", "role": "client", "clientId": "<id client>" }` pour donner l’accès à un nouveau client.
+- `data/clients.json` : contenu affiché côté client + champs éditables dans le cockpit admin.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+> **Tips** : vous pouvez dupliquer l’objet du client `test` pour créer un nouveau dossier, puis l’associer à un compte dans `data/users.json`.
 
-## Deploy on Vercel
+### Personnalisation dans l’admin
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Dans `/admin` vous pouvez :
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Sélectionner un client dans la colonne de gauche.
+2. Modifier nom, secteur, pitch, KPIs, highlights, actions du mois, pipeline à venir et initiatives.
+3. Activer/désactiver le bloc e‑commerce (ex. réservé au client `test`).
+4. Sauvegarder → les données sont immédiatement persistées sur disque (`PUT /api/clients/[id]`) et visibles par le client.
+
+Chaque section dispose de boutons “Ajouter” pour créer de nouveaux items (bullets, KPIs, initiatives). Le bouton “Revenir aux données sauvegardées” recharge le dernier état persisté.
+
+### Architecture rapide
+
+- `src/app/login/page.tsx` : onboarding + formulaire de connexion.
+- `src/app/admin/page.tsx` + `components/admin-dashboard.tsx` : interface éditoriale.
+- `src/app/dashboard/page.tsx` + `components/client-dashboard.tsx` : vue consultative.
+- API routes (`src/app/api/*`) : login/logout + lecture/écriture des fiches clients.
+- Utilitaires `src/lib/*` : gestion des fichiers JSON + helpers d’auth.
+
+### Roadmap / idées
+
+1. Ajouter un historique des modifications (timestamp + auteur).
+2. Brancher un vrai SGBD (PostgreSQL/Planetscale) quand vous aurez besoin d’un hébergement cloud.
+3. Plugger des widgets additionnels (performance ads, courbes GA4) via embed ou appels API réels.

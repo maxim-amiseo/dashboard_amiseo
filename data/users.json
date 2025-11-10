@@ -1,0 +1,17 @@
+[
+  {
+    "id": "admin-maxim",
+    "username": "Maxim",
+    "password": "Maxim2009",
+    "role": "admin",
+    "displayName": "Maxim Amiseo"
+  },
+  {
+    "id": "client-lucyome",
+    "username": "lucyome",
+    "password": "lucyome2024",
+    "role": "client",
+    "displayName": "Lucyome",
+    "clientId": "lucyome"
+  }
+]
