@@ -85,8 +85,8 @@ export function LoginForm() {
         {pending ? "Connexion..." : "Se connecter"}
       </button>
 
-      <p className="text-center text-xs text-white/60">
-        Admin : Maxim / Maxim2009 — Client test : test / test
+      <p className="text-center text-xs text-white/50">
+        Accès réservé aux clients Amiseo. Contactez support@amiseo.fr pour obtenir ou réinitialiser vos identifiants.
       </p>
     </form>
   );

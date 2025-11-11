@@ -22,6 +22,15 @@ export type EcommerceSnapshot = {
   cartAbandonment: string;
 };
 
+export type AdsSnapshot = {
+  spend: string;
+  roas: string;
+  cpa: string;
+  impressions: string;
+  ctr: string;
+  bestChannel: string;
+};
+
 export type ClientRecord = {
   id: string;
   name: string;
@@ -33,6 +42,7 @@ export type ClientRecord = {
   nextMonthActions: string[];
   initiatives: Initiative[];
   ecommerce?: EcommerceSnapshot;
+  ads?: AdsSnapshot;
 };
 
 export type UserRecord = {

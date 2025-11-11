@@ -125,6 +125,26 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
             </div>
           </section>
         ) : null}
+
+        {client.ads ? (
+          <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <div className="flex items-center gap-3">
+              <ArrowUpRight className="h-5 w-5 text-[var(--amiseo-accent)]" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-white/60">Ads</p>
+                <h3 className="text-2xl font-semibold text-white">Radar paid</h3>
+              </div>
+            </div>
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {Object.entries(client.ads).map(([key, value]) => (
+                <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.4em] text-white/60">{labelForAdsKey(key)}</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </div>
   );
@@ -157,6 +177,25 @@ const labelForEcommerceKey = (key: string) => {
       return "Panier moyen";
     case "cartAbandonment":
       return "Abandon panier";
+    default:
+      return key;
+  }
+};
+
+const labelForAdsKey = (key: string) => {
+  switch (key) {
+    case "spend":
+      return "Dépenses";
+    case "roas":
+      return "ROAS";
+    case "cpa":
+      return "CPA";
+    case "impressions":
+      return "Impressions";
+    case "ctr":
+      return "CTR";
+    case "bestChannel":
+      return "Canal star";
     default:
       return key;
   }

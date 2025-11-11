@@ -11,7 +11,7 @@ type AdminDashboardProps = {
   adminName: string;
 };
 
-type DraftClient = ClientRecord & { ecommerceEnabled: boolean };
+type DraftClient = ClientRecord & { ecommerceEnabled: boolean; adsEnabled: boolean };
 
 const defaultEcommerce = () => ({
   revenue: "",
@@ -20,6 +20,15 @@ const defaultEcommerce = () => ({
   topProduct: "",
   avgOrderValue: "",
   cartAbandonment: ""
+});
+
+const defaultAds = () => ({
+  spend: "",
+  roas: "",
+  cpa: "",
+  impressions: "",
+  ctr: "",
+  bestChannel: ""
 });
 
 const cloneClient = (client: ClientRecord): DraftClient => ({
@@ -32,7 +41,9 @@ const cloneClient = (client: ClientRecord): DraftClient => ({
     ? structuredClone(client.initiatives)
     : [{ title: "", status: "planning", details: "" }],
   ecommerce: client.ecommerce ?? defaultEcommerce(),
-  ecommerceEnabled: Boolean(client.ecommerce)
+  ecommerceEnabled: Boolean(client.ecommerce),
+  ads: client.ads ?? defaultAds(),
+  adsEnabled: Boolean(client.ads)
 });
 
 const fallbackClient: ClientRecord = {
@@ -44,7 +55,9 @@ const fallbackClient: ClientRecord = {
   monthlyHighlights: [""],
   thisMonthActions: [""],
   nextMonthActions: [""],
-  initiatives: [{ title: "", status: "planning", details: "" }]
+  initiatives: [{ title: "", status: "planning", details: "" }],
+  ads: undefined,
+  ecommerce: undefined
 };
 
 const sanitizeDraft = (draft: DraftClient, fallbackId: string): ClientRecord => {
@@ -78,6 +91,17 @@ const sanitizeDraft = (draft: DraftClient, fallbackId: string): ClientRecord => 
       }
     : undefined;
 
+  const ads = draft.adsEnabled
+    ? {
+        spend: safeString(draft.ads?.spend),
+        roas: safeString(draft.ads?.roas),
+        cpa: safeString(draft.ads?.cpa),
+        impressions: safeString(draft.ads?.impressions),
+        ctr: safeString(draft.ads?.ctr),
+        bestChannel: safeString(draft.ads?.bestChannel)
+      }
+    : undefined;
+
   return {
     id: safeString(draft.id) || safeString(fallbackId),
     name: safeString(draft.name),
@@ -88,7 +112,8 @@ const sanitizeDraft = (draft: DraftClient, fallbackId: string): ClientRecord => 
     thisMonthActions: safeList(draft.thisMonthActions),
     nextMonthActions: safeList(draft.nextMonthActions),
     initiatives,
-    ecommerce
+    ecommerce,
+    ads
   };
 };
 
@@ -166,6 +191,14 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
       ...prev,
       ecommerceEnabled: enabled,
       ecommerce: enabled ? prev.ecommerce ?? defaultEcommerce() : undefined
+    }));
+  };
+
+  const toggleAds = (enabled: boolean) => {
+    setDraft((prev) => ({
+      ...prev,
+      adsEnabled: enabled,
+      ads: enabled ? prev.ads ?? defaultAds() : undefined
     }));
   };
 
@@ -414,7 +447,7 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
                     onChange={(event) => updateInitiative(index, "title", event.target.value)}
                   />
                   <select
-                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
+                    className="rounded-xl border border-white/30 bg-white/90 px-3 py-2 text-sm font-medium text-slate-900 focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
                     value={initiative.status}
                     onChange={(event) => updateInitiative(index, "status", event.target.value as Initiative["status"])}
                   >
@@ -474,6 +507,46 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
               <p className="text-sm text-white/50">Activez la bascule pour afficher les KPIs e-commerce.</p>
             )}
           </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-white">Bloc Ads</p>
+              <label className="inline-flex items-center gap-2 text-sm text-white/70">
+                <input
+                  type="checkbox"
+                  checked={draft.adsEnabled}
+                  onChange={(event) => toggleAds(event.target.checked)}
+                  className="h-4 w-4 rounded border-white/30 bg-transparent text-[var(--amiseo-accent)] focus:ring-[var(--amiseo-accent-strong)]"
+                />
+                Afficher pour ce client
+              </label>
+            </div>
+
+            {draft.adsEnabled && draft.ads ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                {Object.entries(draft.ads).map(([key, value]) => (
+                  <label key={key} className="text-xs uppercase tracking-[0.3em] text-white/60">
+                    {labelForAdsKey(key)}
+                    <input
+                      className="mt-2 w-full rounded-2xl border border-white/20 bg-[rgba(26,27,41,0.7)] px-3 py-2 text-sm text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                      value={value}
+                      onChange={(event) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          ads: {
+                            ...prev.ads!,
+                            [key]: event.target.value
+                          }
+                        }))
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-white/50">Activez la bascule pour suivre vos indicateurs médias payants.</p>
+            )}
+          </div>
         </section>
       </div>
     </div>
@@ -494,6 +567,25 @@ const labelForEcommerceKey = (key: string) => {
       return "Panier moyen";
     case "cartAbandonment":
       return "Abandon panier";
+    default:
+      return key;
+  }
+};
+
+const labelForAdsKey = (key: string) => {
+  switch (key) {
+    case "spend":
+      return "Dépenses";
+    case "roas":
+      return "ROAS";
+    case "cpa":
+      return "CPA";
+    case "impressions":
+      return "Impressions";
+    case "ctr":
+      return "CTR";
+    case "bestChannel":
+      return "Canal star";
     default:
       return key;
   }
