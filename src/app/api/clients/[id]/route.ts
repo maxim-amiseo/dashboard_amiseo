@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { clientPayloadSchema } from '@/lib/schemas';
-import { saveClient } from '@/lib/data';
+import { getClientById, saveClient } from '@/lib/data';
 import { getSessionUser } from '@/lib/auth';
 import { ZodError } from 'zod';
 
