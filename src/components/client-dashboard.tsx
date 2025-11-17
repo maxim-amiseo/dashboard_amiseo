@@ -11,10 +11,22 @@ type ClientDashboardProps = {
 
 export function ClientDashboard({ client }: ClientDashboardProps) {
   const [selectedPeriodId, setSelectedPeriodId] = useState(client.kpiPeriods?.[0]?.id ?? "");
+  const [selectedEcomId, setSelectedEcomId] = useState(client.ecommercePeriods?.[0]?.id ?? "");
+  const [selectedAdsId, setSelectedAdsId] = useState(client.adsPeriods?.[0]?.id ?? "");
 
   const selectedPeriod = useMemo(
     () => client.kpiPeriods.find((period) => period.id === selectedPeriodId) ?? client.kpiPeriods[0],
     [client.kpiPeriods, selectedPeriodId]
+  );
+
+  const selectedEcommerce = useMemo(
+    () => client.ecommercePeriods?.find((period) => period.id === selectedEcomId) ?? client.ecommercePeriods?.[0],
+    [client.ecommercePeriods, selectedEcomId]
+  );
+
+  const selectedAds = useMemo(
+    () => client.adsPeriods?.find((period) => period.id === selectedAdsId) ?? client.adsPeriods?.[0],
+    [client.adsPeriods, selectedAdsId]
   );
 
   const normalizeList = (list?: string[]) => (list ?? []).map((item) => item.trim()).filter(Boolean);
@@ -162,17 +174,50 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
               <ShoppingBag className="h-6 w-6 text-[var(--amiseo-accent)]" />
               <div>
                 <p className="text-xs uppercase tracking-[0.4em] text-[var(--amiseo-accent-strong)]">E-commerce</p>
-                <h3 className="text-2xl font-semibold text-white">Radar business</h3>
+                <h3 className="text-2xl font-semibold text-white">
+                  Radar business {selectedEcommerce?.label ? `(${selectedEcommerce.label})` : ""}
+                </h3>
               </div>
             </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {Object.entries(client.ecommerce).map(([key, value]) => (
-                <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.4em] text-white/60">{labelForEcommerceKey(key)}</p>
-                  <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+            {client.ecommercePeriods?.length ? (
+              <>
+                <div className="mt-4 flex items-center gap-2 text-sm text-white/70">
+                  <span>Période</span>
+                  <select
+                    className="rounded-xl border border-white/20 bg-[rgba(28,29,45,0.78)] px-3 py-1.5 text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                    value={selectedEcommerce?.id ?? ""}
+                    onChange={(event) => setSelectedEcomId(event.target.value)}
+                  >
+                    {client.ecommercePeriods.map((period) => (
+                      <option key={period.id} value={period.id} className="bg-slate-900 text-white">
+                        {period.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-            </div>
+                {selectedEcommerce ? (
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
+                    {Object.entries(selectedEcommerce.ecommerce).map(([key, value]) => (
+                      <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-xs uppercase tracking-[0.4em] text-white/60">{labelForEcommerceKey(key)}</p>
+                        <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-white/60">Aucune période e-commerce sélectionnée.</p>
+                )}
+              </>
+            ) : (
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {Object.entries(client.ecommerce).map(([key, value]) => (
+                  <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.4em] text-white/60">{labelForEcommerceKey(key)}</p>
+                    <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         ) : null}
 
@@ -182,17 +227,50 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
               <ArrowUpRight className="h-5 w-5 text-[var(--amiseo-accent)]" />
               <div>
                 <p className="text-xs uppercase tracking-[0.4em] text-white/60">Ads</p>
-                <h3 className="text-2xl font-semibold text-white">Radar paid</h3>
+                <h3 className="text-2xl font-semibold text-white">
+                  Radar paid {selectedAds?.label ? `(${selectedAds.label})` : ""}
+                </h3>
               </div>
             </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {Object.entries(client.ads).map(([key, value]) => (
-                <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-xs uppercase tracking-[0.4em] text-white/60">{labelForAdsKey(key)}</p>
-                  <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+            {client.adsPeriods?.length ? (
+              <>
+                <div className="mt-4 flex items-center gap-2 text-sm text-white/70">
+                  <span>Semaine</span>
+                  <select
+                    className="rounded-xl border border-white/20 bg-[rgba(28,29,45,0.78)] px-3 py-1.5 text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                    value={selectedAds?.id ?? ""}
+                    onChange={(event) => setSelectedAdsId(event.target.value)}
+                  >
+                    {client.adsPeriods.map((period) => (
+                      <option key={period.id} value={period.id} className="bg-slate-900 text-white">
+                        {period.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-            </div>
+                {selectedAds ? (
+                  <div className="mt-6 grid gap-4 md:grid-cols-3">
+                    {Object.entries(selectedAds.ads).map(([key, value]) => (
+                      <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-xs uppercase tracking-[0.4em] text-white/60">{labelForAdsKey(key)}</p>
+                        <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-white/60">Aucune semaine ads sélectionnée.</p>
+                )}
+              </>
+            ) : (
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {Object.entries(client.ads).map(([key, value]) => (
+                  <div key={key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.4em] text-white/60">{labelForAdsKey(key)}</p>
+                    <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         ) : null}
       </div>

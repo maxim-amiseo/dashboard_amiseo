@@ -31,6 +31,12 @@ export type EcommerceSnapshot = {
   cartAbandonment: string;
 };
 
+export type EcommercePeriod = {
+  id: string;
+  label: string;
+  ecommerce: EcommerceSnapshot;
+};
+
 export type AdsSnapshot = {
   spend: string;
   roas: string;
@@ -38,6 +44,12 @@ export type AdsSnapshot = {
   impressions: string;
   ctr: string;
   bestChannel: string;
+};
+
+export type AdsPeriod = {
+  id: string;
+  label: string;
+  ads: AdsSnapshot;
 };
 
 export type ClientRecord = {
@@ -55,7 +67,9 @@ export type ClientRecord = {
   nextMonthActions: string[];
   initiatives: Initiative[];
   ecommerce?: EcommerceSnapshot;
+  ecommercePeriods?: EcommercePeriod[];
   ads?: AdsSnapshot;
+  adsPeriods?: AdsPeriod[];
 };
 
 export type UserRecord = {

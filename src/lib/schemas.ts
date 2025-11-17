@@ -32,6 +32,12 @@ export const ecommerceSchema = z
   })
   .optional();
 
+export const ecommercePeriodSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  ecommerce: ecommerceSchema.unwrap()
+});
+
 export const adsSchema = z
   .object({
     spend: z.string().optional().default(""),
@@ -42,6 +48,12 @@ export const adsSchema = z
     bestChannel: z.string().optional().default("")
   })
   .optional();
+
+export const adsPeriodSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  ads: adsSchema.unwrap()
+});
 
 export const clientPayloadSchema = z.object({
   id: z.string().min(1),
@@ -54,7 +66,9 @@ export const clientPayloadSchema = z.object({
   nextMonthActions: z.array(z.string()),
   initiatives: z.array(initiativeSchema),
   ecommerce: ecommerceSchema,
-  ads: adsSchema
+  ecommercePeriods: z.array(ecommercePeriodSchema).optional(),
+  ads: adsSchema,
+  adsPeriods: z.array(adsPeriodSchema).optional()
 });
 
 export type ClientPayload = z.infer<typeof clientPayloadSchema>;

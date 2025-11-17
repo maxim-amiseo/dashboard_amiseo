@@ -1,6 +1,6 @@
 "use client";
 
-import type { ClientRecord, Initiative, KPI, KPIPeriod } from "@/lib/data";
+import type { AdsSnapshot, ClientRecord, EcommerceSnapshot, Initiative, KPI, KPIPeriod } from "@/lib/data";
 import clsx from "clsx";
 import { CheckCircle2, Loader2, Plus, RefreshCw } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
@@ -43,6 +43,17 @@ const defaultAds = () => ({
   bestChannel: ""
 });
 
+const defaultEcommercePeriod = (label = "Mois en cours"): KPIPeriod & { ecommerce?: EcommerceSnapshot } => ({
+  ...createKpiPeriod(label),
+  ecommerce: defaultEcommerce()
+});
+
+const defaultAdsPeriod = (label = "Semaine en cours") => ({
+  id: `ads-periode-${makeId()}`,
+  label,
+  ads: defaultAds()
+});
+
 const normalizeKpiPeriods = (client: ClientRecord): KPIPeriod[] => {
   if (client.kpiPeriods?.length) {
     return structuredClone(client.kpiPeriods);
@@ -75,9 +86,31 @@ const cloneClient = (client: ClientRecord): DraftClient => ({
     ? structuredClone(client.initiatives)
     : [{ title: "", status: "planning", details: "" }],
   ecommerce: client.ecommerce ?? defaultEcommerce(),
-  ecommerceEnabled: Boolean(client.ecommerce),
+  ecommercePeriods: client.ecommercePeriods?.length
+    ? structuredClone(client.ecommercePeriods)
+    : client.ecommerce
+    ? [
+        {
+          id: `ecom-${client.id || makeId()}`,
+          label: "Mois en cours",
+          ecommerce: structuredClone(client.ecommerce)
+        }
+      ]
+    : [defaultEcommercePeriod()],
+  ecommerceEnabled: Boolean(client.ecommerce ?? client.ecommercePeriods?.length),
   ads: client.ads ?? defaultAds(),
-  adsEnabled: Boolean(client.ads)
+  adsPeriods: client.adsPeriods?.length
+    ? structuredClone(client.adsPeriods)
+    : client.ads
+    ? [
+        {
+          id: `ads-${client.id || makeId()}`,
+          label: "Semaine en cours",
+          ads: structuredClone(client.ads)
+        }
+      ]
+    : [defaultAdsPeriod()],
+  adsEnabled: Boolean(client.ads ?? client.adsPeriods?.length)
 });
 
 const fallbackClient: ClientRecord = {
@@ -144,6 +177,40 @@ const sanitizeDraft = (draft: DraftClient, fallbackId: string): ClientRecord => 
 
   const [firstPeriod] = kpiPeriods;
 
+  const ecommercePeriods = draft.ecommerceEnabled
+    ? (draft.ecommercePeriods ?? [])
+        .map((period, index) => ({
+          id: safeString(period?.id) || `ecom-${index + 1}`,
+          label: safeString(period?.label) || `Mois ${index + 1}`,
+          ecommerce: {
+            revenue: safeString(period?.ecommerce?.revenue),
+            conversionRate: safeString(period?.ecommerce?.conversionRate),
+            returningCustomers: safeString(period?.ecommerce?.returningCustomers),
+            topProduct: safeString(period?.ecommerce?.topProduct),
+            avgOrderValue: safeString(period?.ecommerce?.avgOrderValue),
+            cartAbandonment: safeString(period?.ecommerce?.cartAbandonment)
+          }
+        }))
+        .filter((period) => period.label || Object.values(period.ecommerce).some(Boolean))
+    : [];
+
+  const adsPeriods = draft.adsEnabled
+    ? (draft.adsPeriods ?? [])
+        .map((period, index) => ({
+          id: safeString(period?.id) || `ads-${index + 1}`,
+          label: safeString(period?.label) || `Semaine ${index + 1}`,
+          ads: {
+            spend: safeString(period?.ads?.spend),
+            roas: safeString(period?.ads?.roas),
+            cpa: safeString(period?.ads?.cpa),
+            impressions: safeString(period?.ads?.impressions),
+            ctr: safeString(period?.ads?.ctr),
+            bestChannel: safeString(period?.ads?.bestChannel)
+          }
+        }))
+        .filter((period) => period.label || Object.values(period.ads).some(Boolean))
+    : [];
+
   const initiatives = (draft.initiatives ?? [])
     .map((initiative) => ({
       title: safeString(initiative?.title),
@@ -185,7 +252,9 @@ const sanitizeDraft = (draft: DraftClient, fallbackId: string): ClientRecord => 
     nextMonthActions: safeList(firstPeriod?.nextMonthActions) ?? [],
     initiatives,
     ecommerce,
-    ads
+    ecommercePeriods: ecommercePeriods.length ? ecommercePeriods : undefined,
+    ads,
+    adsPeriods: adsPeriods.length ? adsPeriods : undefined
   };
 };
 
@@ -304,6 +373,60 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
       kpiPeriods: [...prev.kpiPeriods, newPeriod]
     }));
     setSelectedPeriodId(newPeriod.id);
+  };
+
+  const addEcommercePeriod = () => {
+    const newPeriod = {
+      id: `ecom-${makeId()}`,
+      label: "Nouveau mois",
+      ecommerce: defaultEcommerce()
+    };
+    setDraft((prev) => ({
+      ...prev,
+      ecommercePeriods: [...(prev.ecommercePeriods ?? []), newPeriod],
+      ecommerceEnabled: true
+    }));
+  };
+
+  const updateEcommercePeriod = (periodId: string, key: keyof EcommerceSnapshot, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      ecommercePeriods: (prev.ecommercePeriods ?? []).map((period) =>
+        period.id === periodId ? { ...period, ecommerce: { ...period.ecommerce, [key]: value } } : period
+      )
+    }));
+  };
+
+  const updateEcommercePeriodLabel = (periodId: string, label: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      ecommercePeriods: (prev.ecommercePeriods ?? []).map((period) => (period.id === periodId ? { ...period, label } : period))
+    }));
+  };
+
+  const addAdsPeriod = () => {
+    const newPeriod = defaultAdsPeriod("Nouvelle semaine");
+    setDraft((prev) => ({
+      ...prev,
+      adsPeriods: [...(prev.adsPeriods ?? []), newPeriod],
+      adsEnabled: true
+    }));
+  };
+
+  const updateAdsPeriod = (periodId: string, key: keyof AdsSnapshot, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      adsPeriods: (prev.adsPeriods ?? []).map((period) =>
+        period.id === periodId ? { ...period, ads: { ...period.ads, [key]: value } } : period
+      )
+    }));
+  };
+
+  const updateAdsPeriodLabel = (periodId: string, label: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      adsPeriods: (prev.adsPeriods ?? []).map((period) => (period.id === periodId ? { ...period, label } : period))
+    }));
   };
 
   const updateInitiative = (index: number, field: keyof Initiative, value: string) => {
@@ -666,81 +789,122 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-white">Bloc e-commerce</p>
-              <label className="inline-flex items-center gap-2 text-sm text-white/70">
-                <input
-                  type="checkbox"
-                  checked={draft.ecommerceEnabled}
-                  onChange={(event) => toggleEcommerce(event.target.checked)}
-                  className="h-4 w-4 rounded border-white/30 bg-transparent text-[var(--amiseo-accent)] focus:ring-[var(--amiseo-accent-strong)]"
-                />
-                Afficher pour ce client
-              </label>
+              <p className="text-sm font-semibold text-white">Bloc e-commerce (par mois)</p>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-2 text-sm text-white/70">
+                  <input
+                    type="checkbox"
+                    checked={draft.ecommerceEnabled}
+                    onChange={(event) => toggleEcommerce(event.target.checked)}
+                    className="h-4 w-4 rounded border-white/30 bg-transparent text-[var(--amiseo-accent)] focus:ring-[var(--amiseo-accent-strong)]"
+                  />
+                  Afficher pour ce client
+                </label>
+                <button
+                  onClick={addEcommercePeriod}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 hover:border-white/40"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Ajouter un mois e-com
+                </button>
+              </div>
             </div>
 
-            {draft.ecommerceEnabled && draft.ecommerce ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {Object.entries(draft.ecommerce).map(([key, value]) => (
-                  <label key={key} className="text-xs uppercase tracking-[0.3em] text-white/60">
-                    {labelForEcommerceKey(key)}
+            {draft.ecommerceEnabled && draft.ecommercePeriods?.length ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {draft.ecommercePeriods.map((period) => (
+                    <span
+                      key={period.id}
+                      className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70"
+                    >
+                      {period.label}
+                    </span>
+                  ))}
+                </div>
+                {draft.ecommercePeriods.map((period) => (
+                  <div key={period.id} className="space-y-3 rounded-2xl border border-white/10 bg-[rgba(26,27,41,0.7)] p-4">
                     <input
-                      className="mt-2 w-full rounded-2xl border border-white/20 bg-[rgba(26,27,41,0.7)] px-3 py-2 text-sm text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
-                      value={value}
-                      onChange={(event) =>
-                        setDraft((prev) => ({
-                          ...prev,
-                          ecommerce: {
-                            ...prev.ecommerce!,
-                            [key]: event.target.value
-                          }
-                        }))
-                      }
+                      className="w-full rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
+                      placeholder="Mois / période"
+                      value={period.label}
+                      onChange={(event) => updateEcommercePeriodLabel(period.id, event.target.value)}
                     />
-                  </label>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {Object.entries(period.ecommerce).map(([key, value]) => (
+                        <label key={key} className="text-xs uppercase tracking-[0.3em] text-white/60">
+                          {labelForEcommerceKey(key)}
+                          <input
+                            className="mt-2 w-full rounded-2xl border border-white/20 bg-[rgba(26,27,41,0.7)] px-3 py-2 text-sm text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                            value={value}
+                            onChange={(event) => updateEcommercePeriod(period.id, key as keyof EcommerceSnapshot, event.target.value)}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/50">Activez la bascule pour afficher les KPIs e-commerce.</p>
+              <p className="text-sm text-white/50">Activez la bascule et/ou ajoutez un mois e-commerce.</p>
             )}
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-white">Bloc Ads</p>
-              <label className="inline-flex items-center gap-2 text-sm text-white/70">
-                <input
-                  type="checkbox"
-                  checked={draft.adsEnabled}
-                  onChange={(event) => toggleAds(event.target.checked)}
-                  className="h-4 w-4 rounded border-white/30 bg-transparent text-[var(--amiseo-accent)] focus:ring-[var(--amiseo-accent-strong)]"
-                />
-                Afficher pour ce client
-              </label>
+              <p className="text-sm font-semibold text-white">Bloc Ads (par semaine)</p>
+              <div className="flex items-center gap-2">
+                <label className="inline-flex items-center gap-2 text-sm text-white/70">
+                  <input
+                    type="checkbox"
+                    checked={draft.adsEnabled}
+                    onChange={(event) => toggleAds(event.target.checked)}
+                    className="h-4 w-4 rounded border-white/30 bg-transparent text-[var(--amiseo-accent)] focus:ring-[var(--amiseo-accent-strong)]"
+                  />
+                  Afficher pour ce client
+                </label>
+                <button
+                  onClick={addAdsPeriod}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 hover:border-white/40"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Ajouter une semaine ads
+                </button>
+              </div>
             </div>
 
-            {draft.adsEnabled && draft.ads ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {Object.entries(draft.ads).map(([key, value]) => (
-                  <label key={key} className="text-xs uppercase tracking-[0.3em] text-white/60">
-                    {labelForAdsKey(key)}
+            {draft.adsEnabled && draft.adsPeriods?.length ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {draft.adsPeriods.map((period) => (
+                    <span key={period.id} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70">
+                      {period.label}
+                    </span>
+                  ))}
+                </div>
+                {draft.adsPeriods.map((period) => (
+                  <div key={period.id} className="space-y-3 rounded-2xl border border-white/10 bg-[rgba(26,27,41,0.7)] p-4">
                     <input
-                      className="mt-2 w-full rounded-2xl border border-white/20 bg-[rgba(26,27,41,0.7)] px-3 py-2 text-sm text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
-                      value={value}
-                      onChange={(event) =>
-                        setDraft((prev) => ({
-                          ...prev,
-                          ads: {
-                            ...prev.ads!,
-                            [key]: event.target.value
-                          }
-                        }))
-                      }
+                      className="w-full rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
+                      placeholder="Semaine / période"
+                      value={period.label}
+                      onChange={(event) => updateAdsPeriodLabel(period.id, event.target.value)}
                     />
-                  </label>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {Object.entries(period.ads).map(([key, value]) => (
+                        <label key={key} className="text-xs uppercase tracking-[0.3em] text-white/60">
+                          {labelForAdsKey(key)}
+                          <input
+                            className="mt-2 w-full rounded-2xl border border-white/20 bg-[rgba(26,27,41,0.7)] px-3 py-2 text-sm text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                            value={value}
+                            onChange={(event) => updateAdsPeriod(period.id, key as keyof AdsSnapshot, event.target.value)}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/50">Activez la bascule pour suivre vos indicateurs médias payants.</p>
+              <p className="text-sm text-white/50">Activez la bascule et/ou ajoutez une semaine ads.</p>
             )}
           </div>
         </section>

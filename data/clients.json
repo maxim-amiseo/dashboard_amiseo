@@ -88,6 +88,58 @@
         ]
       }
     ],
+    "ecommercePeriods": [
+      {
+        "id": "ecom-2024-12",
+        "label": "Décembre 2024",
+        "ecommerce": {
+          "revenue": "76 400 € (+14%)",
+          "conversionRate": "3,4% (+0,6 pt)",
+          "returningCustomers": "42% (+5 pts)",
+          "topProduct": "Bougie Quartz & Musc",
+          "avgOrderValue": "72 €",
+          "cartAbandonment": "58% (-4 pts)"
+        }
+      },
+      {
+        "id": "ecom-2024-11",
+        "label": "Novembre 2024",
+        "ecommerce": {
+          "revenue": "68 900 € (+9%)",
+          "conversionRate": "3,0% (+0,3 pt)",
+          "returningCustomers": "39% (+3 pts)",
+          "topProduct": "Bougie Ambre & Cassis",
+          "avgOrderValue": "70 €",
+          "cartAbandonment": "60% (-2 pts)"
+        }
+      }
+    ],
+    "adsPeriods": [
+      {
+        "id": "ads-2024-w49",
+        "label": "Semaine 49",
+        "ads": {
+          "spend": "4 400 €",
+          "roas": "4,8x",
+          "cpa": "21 €",
+          "impressions": "820 k",
+          "ctr": "3,1%",
+          "bestChannel": "Meta Advantage+"
+        }
+      },
+      {
+        "id": "ads-2024-w48",
+        "label": "Semaine 48",
+        "ads": {
+          "spend": "4 100 €",
+          "roas": "4,3x",
+          "cpa": "23 €",
+          "impressions": "790 k",
+          "ctr": "2,8%",
+          "bestChannel": "TikTok Shop"
+        }
+      }
+    ],
     "monthlyHighlights": [
       "Capsule \"Noël minéral\" sold-out en 4 jours",
       "Top of funnel Meta optimisé avec nouveaux hooks créatifs",
