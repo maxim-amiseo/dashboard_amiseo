@@ -7,6 +7,15 @@ export type KPI = {
   helper?: string;
 };
 
+export type KPIPeriod = {
+  id: string;
+  label: string;
+  kpis: KPI[];
+  monthlyHighlights?: string[];
+  thisMonthActions?: string[];
+  nextMonthActions?: string[];
+};
+
 export type Initiative = {
   title: string;
   status: 'active' | 'paused' | 'monitoring' | 'planning';
@@ -36,7 +45,11 @@ export type ClientRecord = {
   name: string;
   industry: string;
   summary: string;
-  kpis: KPI[];
+  kpiPeriods: KPIPeriod[];
+  /**
+   * @deprecated Utilisé uniquement pour compatibilité descendante avec les anciennes données.
+   */
+  kpis?: KPI[];
   monthlyHighlights: string[];
   thisMonthActions: string[];
   nextMonthActions: string[];

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ClientRecord, Initiative, KPI } from "@/lib/data";
+import type { ClientRecord, Initiative, KPI, KPIPeriod } from "@/lib/data";
 import clsx from "clsx";
 import { CheckCircle2, Loader2, Plus, RefreshCw } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
@@ -12,6 +12,18 @@ type AdminDashboardProps = {
 };
 
 type DraftClient = ClientRecord & { ecommerceEnabled: boolean; adsEnabled: boolean };
+
+const makeId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+
+const createKpiPeriod = (label = "Nouveau mois"): KPIPeriod => ({
+  id: `periode-${makeId()}`,
+  label,
+  kpis: [],
+  monthlyHighlights: [""],
+  thisMonthActions: [""],
+  nextMonthActions: [""]
+});
 
 const defaultEcommerce = () => ({
   revenue: "",
@@ -31,9 +43,31 @@ const defaultAds = () => ({
   bestChannel: ""
 });
 
+const normalizeKpiPeriods = (client: ClientRecord): KPIPeriod[] => {
+  if (client.kpiPeriods?.length) {
+    return structuredClone(client.kpiPeriods);
+  }
+
+  const legacyKpis = client.kpis?.length ? structuredClone(client.kpis) : [];
+  const legacyHighlights = client.monthlyHighlights?.length ? structuredClone(client.monthlyHighlights) : [""];
+  const legacyThisMonth = client.thisMonthActions?.length ? structuredClone(client.thisMonthActions) : [""];
+  const legacyNextMonth = client.nextMonthActions?.length ? structuredClone(client.nextMonthActions) : [""];
+
+  return [
+    {
+      id: `periode-${client.id || makeId()}`,
+      label: "Période en cours",
+      kpis: legacyKpis,
+      monthlyHighlights: legacyHighlights,
+      thisMonthActions: legacyThisMonth,
+      nextMonthActions: legacyNextMonth
+    }
+  ];
+};
+
 const cloneClient = (client: ClientRecord): DraftClient => ({
   ...structuredClone(client),
-  kpis: client.kpis?.length ? structuredClone(client.kpis) : [],
+  kpiPeriods: normalizeKpiPeriods(client),
   monthlyHighlights: client.monthlyHighlights?.length ? structuredClone(client.monthlyHighlights) : [""],
   thisMonthActions: client.thisMonthActions?.length ? structuredClone(client.thisMonthActions) : [""],
   nextMonthActions: client.nextMonthActions?.length ? structuredClone(client.nextMonthActions) : [""],
@@ -51,7 +85,13 @@ const fallbackClient: ClientRecord = {
   name: "Nouveau client",
   industry: "",
   summary: "",
-  kpis: [],
+  kpiPeriods: [
+    {
+      id: "periode-1",
+      label: "Période en cours",
+      kpis: []
+    }
+  ],
   monthlyHighlights: [""],
   thisMonthActions: [""],
   nextMonthActions: [""],
@@ -64,13 +104,45 @@ const sanitizeDraft = (draft: DraftClient, fallbackId: string): ClientRecord => 
   const safeString = (value?: string | null) => value?.trim() ?? "";
   const safeList = (values?: string[]) => (values ?? []).map((item) => safeString(item)).filter(Boolean);
 
-  const kpis = (draft.kpis ?? [])
-    .map((kpi) => ({
-      label: safeString(kpi?.label),
-      value: safeString(kpi?.value),
-      helper: safeString(kpi?.helper)
-    }))
-    .filter((kpi) => kpi.label && kpi.value);
+  const kpiPeriods = (draft.kpiPeriods ?? [])
+    .map((period, index) => {
+      const monthlyHighlights = safeList(period?.monthlyHighlights);
+      const thisMonthActions = safeList(period?.thisMonthActions);
+      const nextMonthActions = safeList(period?.nextMonthActions);
+      const kpis = (period?.kpis ?? [])
+        .map((kpi) => ({
+          label: safeString(kpi?.label),
+          value: safeString(kpi?.value),
+          helper: safeString(kpi?.helper)
+        }))
+        .filter((kpi) => kpi.label && kpi.value);
+
+      const label = safeString(period?.label) || `Période ${index + 1}`;
+      const id = safeString(period?.id) || `periode-${index + 1}`;
+
+      return {
+        id,
+        label,
+        kpis,
+        monthlyHighlights: monthlyHighlights.length ? monthlyHighlights : [""],
+        thisMonthActions: thisMonthActions.length ? thisMonthActions : [""],
+        nextMonthActions: nextMonthActions.length ? nextMonthActions : [""]
+      };
+    })
+    .filter((period) => period.label || period.kpis.length);
+
+  if (!kpiPeriods.length) {
+    kpiPeriods.push({
+      id: safeString(fallbackId) || "periode-1",
+      label: "Période en cours",
+      kpis: [],
+      monthlyHighlights: [""],
+      thisMonthActions: [""],
+      nextMonthActions: [""]
+    });
+  }
+
+  const [firstPeriod] = kpiPeriods;
 
   const initiatives = (draft.initiatives ?? [])
     .map((initiative) => ({
@@ -107,10 +179,10 @@ const sanitizeDraft = (draft: DraftClient, fallbackId: string): ClientRecord => 
     name: safeString(draft.name),
     industry: safeString(draft.industry),
     summary: safeString(draft.summary),
-    kpis,
-    monthlyHighlights: safeList(draft.monthlyHighlights),
-    thisMonthActions: safeList(draft.thisMonthActions),
-    nextMonthActions: safeList(draft.nextMonthActions),
+    kpiPeriods,
+    monthlyHighlights: safeList(firstPeriod?.monthlyHighlights) ?? [],
+    thisMonthActions: safeList(firstPeriod?.thisMonthActions) ?? [],
+    nextMonthActions: safeList(firstPeriod?.nextMonthActions) ?? [],
     initiatives,
     ecommerce,
     ads
@@ -122,6 +194,7 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
   const baseClient = clientData[0] ?? fallbackClient;
   const [selectedId, setSelectedId] = useState(baseClient.id);
   const [draft, setDraft] = useState(() => cloneClient(baseClient));
+  const [selectedPeriodId, setSelectedPeriodId] = useState(draft.kpiPeriods[0]?.id ?? "");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, startTransition] = useTransition();
@@ -131,11 +204,18 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
     [clientData, selectedId]
   );
 
+  const selectedPeriod = useMemo(
+    () => draft.kpiPeriods.find((period) => period.id === selectedPeriodId) ?? draft.kpiPeriods[0],
+    [draft.kpiPeriods, selectedPeriodId]
+  );
+
   const selectClient = (id: string) => {
     const nextClient = clientData.find((client) => client.id === id);
     if (nextClient) {
       setSelectedId(id);
-      setDraft(cloneClient(nextClient));
+      const nextDraft = cloneClient(nextClient);
+      setDraft(nextDraft);
+      setSelectedPeriodId(nextDraft.kpiPeriods[0]?.id ?? "");
       setStatus("idle");
     }
   };
@@ -144,31 +224,86 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
     setDraft((prev) => ({ ...prev, [key]: value }));
   };
 
-  const updateListItem = (key: "monthlyHighlights" | "thisMonthActions" | "nextMonthActions", index: number, value: string) => {
-    setDraft((prev) => {
-      const next = [...prev[key]];
-      next[index] = value;
-      return { ...prev, [key]: next };
-    });
+  const updatePeriodListItem = (
+    periodId: string,
+    key: "monthlyHighlights" | "thisMonthActions" | "nextMonthActions",
+    index: number,
+    value: string
+  ) => {
+    setDraft((prev) => ({
+      ...prev,
+      kpiPeriods: prev.kpiPeriods.map((period) => {
+        if (period.id !== periodId) return period;
+        const nextList = [...(period[key] ?? [""])];
+        nextList[index] = value;
+        return { ...period, [key]: nextList };
+      })
+    }));
   };
 
-  const addListItem = (key: "monthlyHighlights" | "thisMonthActions" | "nextMonthActions") => {
-    setDraft((prev) => ({ ...prev, [key]: [...prev[key], ""] }));
+  const addPeriodListItem = (periodId: string, key: "monthlyHighlights" | "thisMonthActions" | "nextMonthActions") => {
+    setDraft((prev) => ({
+      ...prev,
+      kpiPeriods: prev.kpiPeriods.map((period) =>
+        period.id === periodId ? { ...period, [key]: [...(period[key] ?? []), ""] } : period
+      )
+    }));
   };
 
-  const updateKpi = (index: number, field: keyof KPI, value: string) => {
-    setDraft((prev) => {
-      const next = [...prev.kpis];
-      next[index] = { ...next[index], [field]: value };
-      return { ...prev, kpis: next };
-    });
+  const updatePeriodLabel = (periodId: string, label: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      kpiPeriods: prev.kpiPeriods.map((period) => (period.id === periodId ? { ...period, label } : period))
+    }));
+  };
+
+  const updateKpi = (periodId: string, index: number, field: keyof KPI, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      kpiPeriods: prev.kpiPeriods.map((period) =>
+        period.id === periodId
+          ? {
+              ...period,
+              kpis: period.kpis.map((kpi, kpiIndex) =>
+                kpiIndex === index ? { ...kpi, [field]: value } : kpi
+              )
+            }
+          : period
+      )
+    }));
   };
 
   const addKpi = () => {
+    if (!selectedPeriod?.id && !draft.kpiPeriods.length) {
+      const newPeriod = createKpiPeriod("Période en cours");
+      setDraft((prev) => ({
+        ...prev,
+        kpiPeriods: [{ ...newPeriod, kpis: [{ label: "", value: "", helper: "" }] }]
+      }));
+      setSelectedPeriodId(newPeriod.id);
+      return;
+    }
+
+    const targetPeriodId = selectedPeriod?.id ?? draft.kpiPeriods[0]?.id;
+    if (!targetPeriodId) return;
+
     setDraft((prev) => ({
       ...prev,
-      kpis: [...prev.kpis, { label: "", value: "", helper: "" }]
+      kpiPeriods: prev.kpiPeriods.map((period) =>
+        period.id === targetPeriodId
+          ? { ...period, kpis: [...period.kpis, { label: "", value: "", helper: "" }] }
+          : period
+      )
     }));
+  };
+
+  const addKpiPeriod = () => {
+    const newPeriod = createKpiPeriod("Nouveau mois");
+    setDraft((prev) => ({
+      ...prev,
+      kpiPeriods: [...prev.kpiPeriods, newPeriod]
+    }));
+    setSelectedPeriodId(newPeriod.id);
   };
 
   const updateInitiative = (index: number, field: keyof Initiative, value: string) => {
@@ -203,7 +338,9 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
   };
 
   const handleReset = () => {
-    setDraft(cloneClient(selectedClient));
+    const nextDraft = cloneClient(selectedClient);
+    setDraft(nextDraft);
+    setSelectedPeriodId(nextDraft.kpiPeriods[0]?.id ?? "");
     setStatus("idle");
   };
 
@@ -252,7 +389,9 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
           }
           return next;
         });
-        setDraft(cloneClient(normalizedPayload));
+        const nextDraft = cloneClient(normalizedPayload);
+        setDraft(nextDraft);
+        setSelectedPeriodId(nextDraft.kpiPeriods[0]?.id ?? "");
         setStatus("saved");
       } catch (error) {
         console.error(error);
@@ -361,70 +500,127 @@ export function AdminDashboard({ clients, adminName }: AdminDashboardProps) {
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-white">KPIs clés</p>
-              <button
-                onClick={addKpi}
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 hover:border-white/40"
-              >
-                <Plus className="h-3.5 w-3.5" /> Ajouter un KPI
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={addKpiPeriod}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 hover:border-white/40"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Ajouter un mois
+                </button>
+                <button
+                  onClick={addKpi}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 hover:border-white/40"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Ajouter un KPI
+                </button>
+              </div>
             </div>
-            <div className="grid gap-4">
-              {draft.kpis.map((kpi, index) => (
-                <div key={index} className="grid gap-3 rounded-2xl border border-white/10 bg-[rgba(26,27,41,0.7)] p-4 md:grid-cols-3">
-                  <input
-                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
-                    placeholder="Label"
-                    value={kpi.label}
-                    onChange={(event) => updateKpi(index, "label", event.target.value)}
-                  />
-                  <input
-                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
-                    placeholder="Valeur"
-                    value={kpi.value}
-                    onChange={(event) => updateKpi(index, "value", event.target.value)}
-                  />
-                  <input
-                    className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
-                    placeholder="Commentaire"
-                    value={kpi.helper ?? ""}
-                    onChange={(event) => updateKpi(index, "helper", event.target.value)}
-                  />
-                </div>
+
+            <div className="mb-3 flex flex-wrap gap-2">
+              {draft.kpiPeriods.map((period) => (
+                <button
+                  key={period.id}
+                  onClick={() => setSelectedPeriodId(period.id)}
+                  className={clsx(
+                    "rounded-full border px-3 py-1 text-sm transition",
+                    selectedPeriod?.id === period.id
+                      ? "border-[var(--amiseo-accent-strong)] bg-[var(--amiseo-accent-soft)] text-white"
+                      : "border-white/15 bg-white/5 text-white/70 hover:border-white/40"
+                  )}
+                >
+                  {period.label || "Sans titre"}
+                </button>
               ))}
             </div>
+
+            {selectedPeriod ? (
+              <div className="space-y-4">
+                <label className="block text-sm text-white/80">
+                  Nom du mois / période
+                  <input
+                    className="mt-2 w-full rounded-2xl border border-white/20 bg-[rgba(28,29,45,0.78)] px-3 py-2 text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                    value={selectedPeriod.label}
+                    onChange={(event) => updatePeriodLabel(selectedPeriod.id, event.target.value)}
+                  />
+                </label>
+
+                {selectedPeriod.kpis.length ? (
+                  <div className="grid gap-4">
+                    {selectedPeriod.kpis.map((kpi, index) => (
+                      <div
+                        key={`${selectedPeriod.id}-${index}`}
+                        className="grid gap-3 rounded-2xl border border-white/10 bg-[rgba(26,27,41,0.7)] p-4 md:grid-cols-3"
+                      >
+                        <input
+                          className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
+                          placeholder="Label"
+                          value={kpi.label}
+                          onChange={(event) => updateKpi(selectedPeriod.id, index, "label", event.target.value)}
+                        />
+                        <input
+                          className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
+                          placeholder="Valeur"
+                          value={kpi.value}
+                          onChange={(event) => updateKpi(selectedPeriod.id, index, "value", event.target.value)}
+                        />
+                        <input
+                          className="rounded-xl border border-white/20 bg-transparent px-3 py-2 text-sm text-white"
+                          placeholder="Commentaire"
+                          value={kpi.helper ?? ""}
+                          onChange={(event) => updateKpi(selectedPeriod.id, index, "helper", event.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-2xl border border-dashed border-white/15 bg-white/5 px-4 py-6 text-center text-sm text-white/60">
+                    Aucun KPI pour cette période. Ajoutez un KPI pour commencer.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-white/60">Ajoutez au moins un mois pour saisir des KPIs.</p>
+            )}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
-            {(["monthlyHighlights", "thisMonthActions", "nextMonthActions"] as const).map((key) => (
-              <div key={key} className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                <div className="mb-3 flex items-center justify-between text-sm font-semibold text-white">
-                  <p>
-                    {key === "monthlyHighlights"
-                      ? "Ce qu'il faut retenir"
-                      : key === "thisMonthActions"
-                      ? "Actions livrées"
-                      : "À lancer"}
-                  </p>
-                  <button onClick={() => addListItem(key)} className="text-xs text-white/70 hover:text-white">
-                    + Ajouter
-                  </button>
+            {selectedPeriod ? (
+              (["monthlyHighlights", "thisMonthActions", "nextMonthActions"] as const).map((key) => (
+                <div key={key} className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                  <div className="mb-3 flex items-center justify-between text-sm font-semibold text-white">
+                    <p>
+                      {key === "monthlyHighlights"
+                        ? "Ce qu'il faut retenir"
+                        : key === "thisMonthActions"
+                        ? "Actions livrées"
+                        : "À lancer"}
+                    </p>
+                    <button
+                      onClick={() => addPeriodListItem(selectedPeriod.id, key)}
+                      className="text-xs text-white/70 hover:text-white"
+                    >
+                      + Ajouter
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {(selectedPeriod[key] ?? [""]).map((item, index) => (
+                      <textarea
+                        key={index}
+                        className="w-full rounded-2xl border border-white/10 bg-[rgba(26,27,41,0.7)] px-3 py-2 text-sm text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                        rows={3}
+                        placeholder="Bullet point"
+                        value={item}
+                        onChange={(event) => updatePeriodListItem(selectedPeriod.id, key, index, event.target.value)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  {draft[key].map((item, index) => (
-                    <textarea
-                      key={index}
-                      className="w-full rounded-2xl border border-white/10 bg-[rgba(26,27,41,0.7)] px-3 py-2 text-sm text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
-                      rows={3}
-                      placeholder="Bullet point"
-                      value={item}
-                      onChange={(event) => updateListItem(key, index, event.target.value)}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-sm text-white/60">Ajoutez une période pour saisir les highlights et actions.</p>
+            )}
           </div>
 
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6">

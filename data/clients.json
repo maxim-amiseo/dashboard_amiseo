@@ -4,26 +4,88 @@
     "name": "Lucyome",
     "industry": "E-commerce bougies et bien-être",
     "summary": "Objectif : scaler les ventes en ligne via campagnes paid + optimisation des abonnements parfumés, tout en gardant un ton de marque premium.",
-    "kpis": [
+    "kpiPeriods": [
       {
-        "label": "Chiffre d'affaires",
-        "value": "76 400 €",
-        "helper": "+14% vs N-1"
+        "id": "2024-12",
+        "label": "Décembre 2024",
+        "kpis": [
+          {
+            "label": "Chiffre d'affaires",
+            "value": "76 400 €",
+            "helper": "+14% vs N-1"
+          },
+          {
+            "label": "ROAS global",
+            "value": "4,5x",
+            "helper": "+0,5 pt"
+          },
+          {
+            "label": "Abonnements actifs",
+            "value": "3 000",
+            "helper": "+180 nouveaux"
+          },
+          {
+            "label": "Panier moyen",
+            "value": "72 €",
+            "helper": "stable"
+          }
+        ],
+        "monthlyHighlights": [
+          "Capsule \"Noël minéral\" sold-out en 4 jours",
+          "Top of funnel Meta optimisé avec nouveaux hooks créatifs",
+          "Série d'emails \"rituels d'hiver\" : +38% de clics"
+        ],
+        "thisMonthActions": [
+          "Audit GA4 → migrations des conversions server-side",
+          "Nouvelles landing pages bundle + upsell",
+          "Partenariat influenceurs maison pour la Candle Week"
+        ],
+        "nextMonthActions": [
+          "Lancement campagne gifting corporate",
+          "Test acquisition Pinterest + TikTok Shop",
+          "Automatisation relance abonnements expirés"
+        ]
       },
       {
-        "label": "ROAS global",
-        "value": "4,5x",
-        "helper": "+0,5 pt"
-      },
-      {
-        "label": "Abonnements actifs",
-        "value": "2 150",
-        "helper": "+180 nouveaux"
-      },
-      {
-        "label": "Panier moyen",
-        "value": "72 €",
-        "helper": "stable"
+        "id": "2024-11",
+        "label": "Novembre 2024",
+        "kpis": [
+          {
+            "label": "Chiffre d'affaires",
+            "value": "68 900 €",
+            "helper": "+9% vs N-1"
+          },
+          {
+            "label": "ROAS global",
+            "value": "4,1x",
+            "helper": "+0,3 pt vs octobre"
+          },
+          {
+            "label": "Abonnements actifs",
+            "value": "2 760",
+            "helper": "+140 nouveaux"
+          },
+          {
+            "label": "Panier moyen",
+            "value": "70 €",
+            "helper": "légère hausse"
+          }
+        ],
+        "monthlyHighlights": [
+          "Push CRM \"Warm assumes\" : +22% de réouvertures",
+          "Lancement tests Pinterest Ads (CBO small)",
+          "Amélioration bundle découverte (+12% ventes unitaires)"
+        ],
+        "thisMonthActions": [
+          "Refonte naming campagnes Meta",
+          "Split test page abonnement vs achat unique",
+          "Paramétrage flux catalogue TikTok Shop"
+        ],
+        "nextMonthActions": [
+          "Workshop nouvelle gamme printemps",
+          "Scaler la campagne retargeting Pinterest",
+          "Lancer automatisations RFM emailing"
+        ]
       }
     ],
     "monthlyHighlights": [

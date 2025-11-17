@@ -6,6 +6,15 @@ export const kpiSchema = z.object({
   helper: z.string().optional()
 });
 
+export const kpiPeriodSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  kpis: z.array(kpiSchema),
+  monthlyHighlights: z.array(z.string()).optional(),
+  thisMonthActions: z.array(z.string()).optional(),
+  nextMonthActions: z.array(z.string()).optional()
+});
+
 export const initiativeSchema = z.object({
   title: z.string().min(1),
   status: z.enum(['active', 'paused', 'monitoring', 'planning']),
@@ -39,7 +48,7 @@ export const clientPayloadSchema = z.object({
   name: z.string().min(1),
   industry: z.string().min(1),
   summary: z.string().min(1),
-  kpis: z.array(kpiSchema),
+  kpiPeriods: z.array(kpiPeriodSchema),
   monthlyHighlights: z.array(z.string()),
   thisMonthActions: z.array(z.string()),
   nextMonthActions: z.array(z.string()),

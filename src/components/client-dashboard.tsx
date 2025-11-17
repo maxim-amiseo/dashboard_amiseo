@@ -1,12 +1,27 @@
+"use client";
+
 import type { ClientRecord } from "@/lib/data";
 import { LogoutButton } from "./logout-button";
 import { ArrowUpRight, CheckCircle2, LayoutDashboard, ShoppingBag } from "lucide-react";
+import { useMemo, useState } from "react";
 
 type ClientDashboardProps = {
   client: ClientRecord;
 };
 
 export function ClientDashboard({ client }: ClientDashboardProps) {
+  const [selectedPeriodId, setSelectedPeriodId] = useState(client.kpiPeriods?.[0]?.id ?? "");
+
+  const selectedPeriod = useMemo(
+    () => client.kpiPeriods.find((period) => period.id === selectedPeriodId) ?? client.kpiPeriods[0],
+    [client.kpiPeriods, selectedPeriodId]
+  );
+
+  const normalizeList = (list?: string[]) => (list ?? []).map((item) => item.trim()).filter(Boolean);
+  const highlights = normalizeList(selectedPeriod?.monthlyHighlights ?? client.monthlyHighlights);
+  const deliveredActions = normalizeList(selectedPeriod?.thisMonthActions ?? client.thisMonthActions);
+  const nextActions = normalizeList(selectedPeriod?.nextMonthActions ?? client.nextMonthActions);
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(118,92,250,0.15),_#1A1B29)] px-4 py-8 text-white lg:px-10">
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
@@ -22,17 +37,50 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
           <p className="mt-4 text-lg text-white/80">{client.summary}</p>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {client.kpis.map((kpi) => (
-            <article
-              key={kpi.label}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-4"
-            >
-              <p className="text-xs uppercase tracking-[0.4em] text-white/60">{kpi.label}</p>
-              <p className="mt-2 text-2xl font-semibold">{kpi.value}</p>
-              {kpi.helper ? <p className="text-sm text-emerald-300">{kpi.helper}</p> : null}
-            </article>
-          ))}
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-white/60">KPIs clés</p>
+              <h2 className="text-xl font-semibold text-white">Performance par mois</h2>
+            </div>
+            {client.kpiPeriods.length ? (
+              <div className="flex items-center gap-2 text-sm text-white/70">
+                <span>Période</span>
+                <select
+                  className="rounded-xl border border-white/20 bg-[rgba(28,29,45,0.78)] px-3 py-1.5 text-white focus:border-[var(--amiseo-accent-strong)] focus:outline-none"
+                  value={selectedPeriod?.id ?? ""}
+                  onChange={(event) => setSelectedPeriodId(event.target.value)}
+                >
+                  {client.kpiPeriods.map((period) => (
+                    <option key={period.id} value={period.id} className="bg-slate-900 text-white">
+                      {period.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
+
+          {selectedPeriod ? (
+            selectedPeriod.kpis.length ? (
+              <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {selectedPeriod.kpis.map((kpi) => (
+                  <article
+                    key={`${selectedPeriod.id}-${kpi.label}`}
+                    className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-4"
+                  >
+                    <p className="text-xs uppercase tracking-[0.4em] text-white/60">{kpi.label}</p>
+                    <p className="mt-2 text-2xl font-semibold">{kpi.value}</p>
+                    {kpi.helper ? <p className="text-sm text-emerald-300">{kpi.helper}</p> : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-white/60">Aucun KPI saisi pour cette période.</p>
+            )
+          ) : (
+            <p className="mt-4 text-sm text-white/60">Aucune période de KPI disponible.</p>
+          )}
         </section>
 
         <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
@@ -41,11 +89,13 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
               <LayoutDashboard className="h-5 w-5 text-[var(--amiseo-accent)]" />
               <div>
                 <p className="text-sm uppercase tracking-[0.4em] text-white/60">Highlights</p>
-                <h2 className="text-xl font-semibold text-white">Ce qu&apos;il faut retenir ce mois-ci</h2>
+                <h2 className="text-xl font-semibold text-white">
+                  Ce qu&apos;il faut retenir {selectedPeriod?.label ? `(${selectedPeriod.label})` : "ce mois-ci"}
+                </h2>
               </div>
             </div>
             <ul className="mt-5 space-y-3 text-white/80">
-              {client.monthlyHighlights.map((item, index) => (
+              {highlights.map((item, index) => (
                 <li key={`${item}-${index}`} className="flex items-center gap-3 rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
                   <ArrowUpRight className="h-4 w-4 text-[var(--amiseo-accent)]" />
                   <span>{item}</span>
@@ -80,7 +130,7 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
               </div>
             </div>
             <ul className="mt-4 space-y-3 text-white/80">
-              {client.thisMonthActions.map((item, index) => (
+              {deliveredActions.map((item, index) => (
                 <li key={`${item}-${index}`} className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2">
                   {item}
                 </li>
@@ -97,7 +147,7 @@ export function ClientDashboard({ client }: ClientDashboardProps) {
               </div>
             </div>
             <ul className="mt-4 space-y-3 text-white/80">
-              {client.nextMonthActions.map((item, index) => (
+              {nextActions.map((item, index) => (
                 <li key={`${item}-${index}`} className="rounded-2xl border border-white/5 bg-white/5 px-4 py-2">
                   {item}
                 </li>
