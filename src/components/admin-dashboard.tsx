@@ -1,6 +1,15 @@
 "use client";
 
-import type { AdsSnapshot, ClientRecord, EcommerceSnapshot, Initiative, KPI, KPIPeriod } from "@/lib/data";
+import type {
+  AdsPeriod,
+  AdsSnapshot,
+  ClientRecord,
+  EcommercePeriod,
+  EcommerceSnapshot,
+  Initiative,
+  KPI,
+  KPIPeriod
+} from "@/lib/data";
 import clsx from "clsx";
 import { CheckCircle2, Loader2, Plus, RefreshCw } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
@@ -43,12 +52,13 @@ const defaultAds = () => ({
   bestChannel: ""
 });
 
-const defaultEcommercePeriod = (label = "Mois en cours"): KPIPeriod & { ecommerce?: EcommerceSnapshot } => ({
-  ...createKpiPeriod(label),
+const defaultEcommercePeriod = (label = "Mois en cours"): EcommercePeriod => ({
+  id: `ecom-${makeId()}`,
+  label,
   ecommerce: defaultEcommerce()
 });
 
-const defaultAdsPeriod = (label = "Semaine en cours") => ({
+const defaultAdsPeriod = (label = "Semaine en cours"): AdsPeriod => ({
   id: `ads-periode-${makeId()}`,
   label,
   ads: defaultAds()
